@@ -1,0 +1,49 @@
+# Publishes Camma to GitHub Pages.
+#
+# Every push to main redeploys the site. The site is just the repository
+# root, because index.html sits there and there is nothing to build.
+name: Deploy to GitHub Pages
+
+on:
+  # Redeploy whenever main changes.
+  push:
+    branches: [main]
+  # Also lets you run it by hand from the Actions tab.
+  workflow_dispatch:
+
+# Permissions this workflow needs to publish a site.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# If two deploys overlap, let the newer one finish rather than cancelling it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # enablement: true switches Pages on the first time this runs,
+      # so there is no settings page to visit.
+      - name: Set up Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Package the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
