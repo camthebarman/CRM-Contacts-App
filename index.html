@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Mobile-first: fill the phone screen, don't let Safari zoom out. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Camma</title>
+
+<!-- Home-screen support. The manifest is a separate small file. -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Camma">
+
+<style>
+/* ---------------------------------------------------------------
+   LOOK: white background, one light blue accent used everywhere,
+   no gradients, no per-person colours. Text-first and roomy.
+   --------------------------------------------------------------- */
+:root {
+  --blue-soft: #e8f1fa;   /* avatar circles, chips, quiet fills */
+  --blue-line: #b9d5ee;   /* borders */
+  --blue-ink:  #1f5c99;   /* readable blue text on white */
+  --ink:       #16202b;   /* main text */
+  --ink-quiet: #5d6b7a;   /* secondary text */
+  --line:      #e3e7eb;   /* plain hairlines */
+  --bg:        #ffffff;
+  --danger:    #a4362c;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  /* System font stack: nothing to download, looks native on iOS and Android. */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 17px;          /* comfortably above the 16px floor */
+  line-height: 1.65;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* The whole app lives in one column that never gets wider than a tablet. */
+#app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px 96px 16px;
+}
+
+/* ---------- header ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  padding: 14px 0 10px 0;
+  border-bottom: 1px solid var(--line);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.wordmark {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+.topbar .spacer { flex: 1; }
+
+/* ---------- buttons ---------- */
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius);
+  border: 1px solid var(--blue-line);
+  background: var(--blue-soft);
+  color: var(--blue-ink);
+  padding: 12px 16px;
+  min-height: 46px;           /* big enough for thumbs */
+  -webkit-tap-highlight-color: transparent;
+}
+button:active { background: #dbe9f7; }
+button.plain {
+  background: var(--bg);
+  border-color: var(--line);
+  color: var(--ink);
+}
+button.link {
+  background: none;
+  border: none;
+  color: var(--blue-ink);
+  padding: 6px 2px;
+  min-height: 0;
+  text-decoration: underline;
+}
+button.danger { color: var(--danger); }
+button.wide { width: 100%; }
+button.small { padding: 8px 12px; min-height: 38px; font-size: 15px; }
+
+/* ---------- form fields ---------- */
+label {
+  display: block;
+  font-size: 15px;
+  color: var(--ink-quiet);
+  margin: 16px 0 6px 0;
+}
+input, textarea, select {
+  font: inherit;
+  font-size: 17px;            /* 16px+ stops iOS from zooming on focus */
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+}
+input:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--blue-line);
+  outline-offset: 1px;
+  border-color: var(--blue-line);
+}
+/* Text areas start short and grow with what you type (see autoGrow in JS). */
+textarea {
+  resize: none;
+  overflow: hidden;
+  min-height: 92px;
+}
+
+/* ---------- cards and lists ---------- */
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin: 14px 0;
+}
+.card h2 { font-size: 17px; margin: 0 0 8px 0; }
+
+.panel-title {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--ink-quiet);
+  margin: 22px 0 8px 0;
+}
+
+/* A tappable row in the ranked contact list. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 4px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  border-radius: 0;
+  min-height: 64px;
+}
+.row:active { background: #f6fafd; }
+.rank {
+  width: 26px;
+  flex: 0 0 26px;
+  text-align: right;
+  color: var(--ink-quiet);
+  font-size: 14px;
+}
+/* Every avatar is the same light blue. No per-person colour. */
+.avatar {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 50%;
+  background: var(--blue-soft);
+  color: var(--blue-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+.avatar.big { width: 64px; height: 64px; flex: 0 0 64px; font-size: 22px; }
+.row-text { min-width: 0; flex: 1; }
+/* Name on its own line, the "last contact" line underneath it. */
+.row-name {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.row-sub { display: block; font-size: 14px; color: var(--ink-quiet); }
+
+/* ---------- today panel ---------- */
+.today {
+  border: 1px solid var(--blue-line);
+  background: var(--blue-soft);
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  margin: 14px 0;
+}
+.today-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 10px 0;
+  color: var(--ink);
+  border-bottom: 1px solid var(--blue-line);
+}
+.today-item:last-child { border-bottom: none; }
+.today-item:active { background: #dbe9f7; }
+.today-when { font-size: 14px; color: var(--blue-ink); }
+.empty { color: var(--ink-quiet); padding: 10px 0; }
+
+/* ---------- misc ---------- */
+.search { margin: 14px 0 6px 0; }
+mark { background: #cfe4f7; color: inherit; padding: 0 2px; border-radius: 3px; }
+.snippet { display: block; font-size: 15px; color: var(--ink-quiet); overflow-wrap: anywhere; }
+.meta { font-size: 14px; color: var(--ink-quiet); }
+.entry { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: none; }
+.entry p { margin: 6px 0 0 0; white-space: pre-wrap; word-wrap: break-word; }
+.entry-actions { display: flex; gap: 6px; margin-top: 6px; }
+.type-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.info-line { margin: 10px 0; }
+.info-label { font-size: 14px; color: var(--ink-quiet); display: block; }
+.info-value { white-space: pre-wrap; word-wrap: break-word; }
+.chip {
+  display: inline-block;
+  font-size: 14px;
+  background: var(--blue-soft);
+  color: var(--blue-ink);
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin-right: 6px;
+}
+.date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.date-row.three { grid-template-columns: 1.4fr 1fr 1fr; }
+.repeat-block { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-top: 10px; }
+.hint { font-size: 14px; color: var(--ink-quiet); margin-top: 6px; }
+.stack > * + * { margin-top: 10px; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+"use strict";
+
+/* ==================================================================
+   CAMMA - a personal CRM that runs entirely in your browser.
+
+   Everything lives in this one file. Read it top to bottom:
+     1. Settings you might want to tweak (ranking weights etc.)
+     2. Storage  - the ONLY place that touches localStorage
+     3. Small helpers (dates, text)
+     4. Ranking
+     5. Today panel, search
+     6. Screens (Home, Contact, Edit, Settings)
+     7. Wiring: clicks, saving, import/export, sample data
+   ================================================================== */
+
+
+/* ------------------------------------------------------------------
+   1. RANKING SETTINGS
+   Tweak these two things and the whole ranking changes.
+   ------------------------------------------------------------------ */
+
+// How much each kind of interaction is worth on the day it happens.
+var TYPE_WEIGHTS = {
+  "In person": 3,
+  "Call": 2,
+  "Text": 1,
+  "Other": 1
+};
+
+// How many days until an interaction is worth half as much.
+var HALF_LIFE_DAYS = 14;
+
+// Positions 1..TOP_SLOTS use the score + floor order.
+// Below that, contacts are sorted only by how recently you spoke.
+var TOP_SLOTS = 15;
+
+// The four buttons on a contact's screen, in display order.
+var INTERACTION_TYPES = ["Call", "Text", "In person", "Other"];
+
+
+/* ------------------------------------------------------------------
+   2. STORAGE MODULE
+   Every read and write goes through loadData() and saveData().
+   To move to a server later, rewrite just these two functions.
+   ------------------------------------------------------------------ */
+
+var STORAGE_KEY = "camma.data.v1";
+
+// The shape of a brand new, empty Camma.
+function emptyData() {
+  return {
+    version: 1,
+    contacts: [],
+    lastBackupAt: null   // ISO string of the last export, or null
+  };
+}
+
+// Read everything out of storage. Always returns a usable object.
+function loadData() {
+  try {
+    var raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return emptyData();
+    var parsed = JSON.parse(raw);
+    return normalizeData(parsed);
+  } catch (err) {
+    // Corrupt or unreadable storage should not break the app.
+    console.warn("Could not read saved data, starting empty.", err);
+    return emptyData();
+  }
+}
+
+// Write everything back to storage. Returns true if it worked.
+function saveData(data) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return true;
+  } catch (err) {
+    alert("Could not save. Your phone's storage for this site may be full.");
+    console.error(err);
+    return false;
+  }
+}
+
+// Fill in anything missing so older or imported files still work.
+function normalizeData(input) {
+  var data = emptyData();
+  if (!input || typeof input !== "object") return data;
+  data.lastBackupAt = typeof input.lastBackupAt === "string" ? input.lastBackupAt : null;
+  var list = Array.isArray(input.contacts) ? input.contacts : [];
+  data.contacts = list.map(normalizeContact);
+  return data;
+}
+
+// A blank contact. Every field except name is optional.
+function emptyContact() {
+  return {
+    id: newId(),
+    name: "",
+    nickname: "",
+    relationship: "",
+    phone: "",
+    email: "",
+    address: "",
+    birthday: null,        // { month, day, year|null }
+    importantDates: [],    // [{ label, month, day, year|null }]
+    howWeMet: "",
+    family: "",
+    work: "",
+    interests: "",
+    giftIdeas: "",
+    floorRank: null,       // a number, or null for no floor
+    interactions: [],      // [{ id, type, at, summary }]
+    notes: []              // [{ id, text, createdAt, updatedAt|null }]
+  };
+}
+
+function normalizeContact(raw) {
+  var c = emptyContact();
+  if (!raw || typeof raw !== "object") return c;
+  c.id = raw.id || newId();
+  ["name","nickname","relationship","phone","email","address",
+   "howWeMet","family","work","interests","giftIdeas"].forEach(function (key) {
+    if (typeof raw[key] === "string") c[key] = raw[key];
+  });
+  c.birthday = normalizeDate(raw.birthday);
+  c.importantDates = (Array.isArray(raw.importantDates) ? raw.importantDates : [])
+    .map(function (d) {
+      var clean = normalizeDate(d);
+      if (!clean) return null;
+      clean.label = (d && typeof d.label === "string") ? d.label : "";
+      return clean;
+    })
+    .filter(Boolean);
+  c.floorRank = isFiniteNumber(raw.floorRank) ? Math.round(Number(raw.floorRank)) : null;
+  c.interactions = (Array.isArray(raw.interactions) ? raw.interactions : [])
+    .map(function (i) {
+      if (!i || !i.at || isNaN(new Date(i.at).getTime())) return null;
+      return {
+        id: i.id || newId(),
+        type: TYPE_WEIGHTS[i.type] ? i.type : "Other",
+        at: new Date(i.at).toISOString(),
+        summary: typeof i.summary === "string" ? i.summary : ""
+      };
+    })
+    .filter(Boolean);
+  c.notes = (Array.isArray(raw.notes) ? raw.notes : [])
+    .map(function (n) {
+      if (!n || typeof n.text !== "string") return null;
+      var created = (n.createdAt && !isNaN(new Date(n.createdAt).getTime()))
+        ? new Date(n.createdAt).toISOString()
+        : new Date().toISOString();
+      return {
+        id: n.id || newId(),
+        text: n.text,
+        createdAt: created,
+        updatedAt: (n.updatedAt && !isNaN(new Date(n.updatedAt).getTime()))
+          ? new Date(n.updatedAt).toISOString()
+          : null
+      };
+    })
+    .filter(Boolean);
+  return c;
+}
+
+// A date with no year is fine (birthdays where you don't know the year).
+function normalizeDate(d) {
+  if (!d) return null;
+  var month = Number(d.month), day = Number(d.day);
+  if (!(month >= 1 && month <= 12)) return null;
+  if (!(day >= 1 && day <= 31)) return null;
+  var year = isFiniteNumber(d.year) ? Math.round(Number(d.year)) : null;
+  return { month: month, day: day, year: year };
+}
+
+function isFiniteNumber(v) {
+  return v !== null && v !== "" && v !== undefined && isFinite(Number(v));
+}
+
+// Unique-enough id for contacts, notes and interactions.
+function newId() {
+  return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+}
+
+
+/* ------------------------------------------------------------------
+   3. SMALL HELPERS
+   ------------------------------------------------------------------ */
+
+var MONTH_NAMES = ["January","February","March","April","May","June",
+                   "July","August","September","October","November","December"];
+
+// Turn text into something safe to drop into HTML.
+function escapeHtml(text) {
+  return String(text === null || text === undefined ? "" : text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Midnight today, used so "days ago" counts calendar days.
+function startOfDay(date) {
+  var d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Whole calendar days between two dates (later minus earlier).
+function daysBetween(earlier, later) {
+  var ms = startOfDay(later) - startOfDay(earlier);
+  return Math.round(ms / 86400000);
+}
+
+// "today" / "yesterday" / "3 days ago"
+function daysAgoText(isoString) {
+  var n = daysBetween(new Date(isoString), new Date());
+  if (n <= 0) return "today";
+  if (n === 1) return "yesterday";
+  return n + " days ago";
+}
+
+// "Mon 4 Aug 2025, 9:14 AM" style, using the phone's own locale.
+function formatDateTime(isoString) {
+  var d = new Date(isoString);
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+    + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+// "4 August" or "4 August 1990"
+function formatMonthDay(dateObj) {
+  if (!dateObj) return "";
+  var text = MONTH_NAMES[dateObj.month - 1] + " " + dateObj.day;
+  if (dateObj.year) text += ", " + dateObj.year;
+  return text;
+}
+
+// Initials for the avatar circle. "Ada Lovelace" -> "AL"
+function initials(name) {
+  var parts = String(name || "?").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// <input type="datetime-local"> wants "YYYY-MM-DDTHH:MM" in LOCAL time.
+function toLocalInputValue(isoString) {
+  var d = new Date(isoString);
+  function pad(n) { return String(n).padStart(2, "0"); }
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate())
+    + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+}
+
+// Textareas that grow as you type, instead of scrolling inside a small box.
+function autoGrow(el) {
+  el.style.height = "auto";
+  el.style.height = (el.scrollHeight + 2) + "px";
+}
+function autoGrowAll() {
+  document.querySelectorAll("textarea").forEach(autoGrow);
+}
+
+
+/* ------------------------------------------------------------------
+   4. RANKING
+
+   Step 1  score  = sum of typeWeight x 0.5^(daysAgo / HALF_LIFE_DAYS)
+   Step 2  sort by score, highest first
+   Step 3  apply floor ranks (a floor is a "no worse than" promise)
+   Step 4  positions 1-15 keep that order; 16 onward sorts only by
+           most recent interaction, and people you've never logged
+           go last, alphabetically.
+   ------------------------------------------------------------------ */
+
+// Step 1. Every interaction decays by half every HALF_LIFE_DAYS.
+function scoreContact(contact, now) {
+  var total = 0;
+  for (var i = 0; i < contact.interactions.length; i++) {
+    var entry = contact.interactions[i];
+    var weight = TYPE_WEIGHTS[entry.type] || 1;
+    var daysAgo = daysBetween(new Date(entry.at), now);
+    if (daysAgo < 0) daysAgo = 0;              // a future timestamp counts as today
+    total += weight * Math.pow(0.5, daysAgo / HALF_LIFE_DAYS);
+  }
+  return total;
+}
+
+// The ISO timestamp of the most recent interaction, or null.
+function lastInteractionAt(contact) {
+  var newest = null;
+  for (var i = 0; i < contact.interactions.length; i++) {
+    var at = contact.interactions[i].at;
+    if (newest === null || at > newest) newest = at;
+  }
+  return newest;
+}
+
+// The main ranking function. Returns contacts in display order.
+function rankContacts(contacts, now) {
+  now = now || new Date();
+
+  // --- Steps 1 and 2: score, then sort highest first.
+  // Equal scores are broken alphabetically so the order never jitters.
+  var ordered = contacts.slice().sort(function (a, b) {
+    var diff = scoreContact(b, now) - scoreContact(a, now);
+    if (diff !== 0) return diff;
+    return a.name.localeCompare(b.name);
+  });
+
+  // --- Step 3: floor ranks.
+  // Group everyone who has a floor, then handle the groups from the
+  // lowest floor number upward (floor 1 first, then 2, and so on).
+  var groups = {};
+  ordered.forEach(function (c) {
+    if (c.floorRank === null || c.floorRank < 1) return;
+    if (!groups[c.floorRank]) groups[c.floorRank] = [];
+    groups[c.floorRank].push(c);   // still in score order
+  });
+
+  Object.keys(groups)
+    .map(Number)
+    .sort(function (a, b) { return a - b; })
+    .forEach(function (floor) {
+      var members = groups[floor];
+      // Several people can share a floor. They take consecutive spots
+      // that END at the floor, so two people with floor 4 land at 3 and 4.
+      members.forEach(function (contact, indexInGroup) {
+        var target = floor - members.length + 1 + indexInGroup;   // 1-based
+        if (target < 1) target = 1;
+        var current = ordered.indexOf(contact) + 1;               // 1-based
+        // Only ever move someone UP. A floor is a minimum, not a fixed spot.
+        if (current > target) {
+          ordered.splice(current - 1, 1);            // take them out
+          ordered.splice(target - 1, 0, contact);    // put them back higher
+        }
+      });
+    });
+
+  // --- Step 4: the top slots keep the order above. Everyone below is
+  // re-sorted by "who did I speak to most recently", newest first.
+  var top = ordered.slice(0, TOP_SLOTS);
+  var rest = ordered.slice(TOP_SLOTS);
+
+  rest.sort(function (a, b) {
+    var aLast = lastInteractionAt(a);
+    var bLast = lastInteractionAt(b);
+    if (aLast && bLast) return bLast < aLast ? -1 : (bLast > aLast ? 1 : a.name.localeCompare(b.name));
+    if (aLast) return -1;          // someone with any history beats someone with none
+    if (bLast) return 1;
+    return a.name.localeCompare(b.name);   // nobody logged: alphabetical
+  });
+
+  return top.concat(rest);
+}
+
+
+/* ------------------------------------------------------------------
+   5a. TODAY PANEL
+   Birthdays and other important dates that land today, plus anything
+   in the next 7 days. Recalculated every time Home is drawn.
+   ------------------------------------------------------------------ */
+
+// How many days until the next time this month/day comes around.
+// 0 means today. Rolls over the new year correctly.
+function daysUntilNext(dateObj, now) {
+  var today = startOfDay(now);
+  var thisYear = new Date(today.getFullYear(), dateObj.month - 1, dateObj.day);
+  if (thisYear >= today) return daysBetween(today, thisYear);
+  var nextYear = new Date(today.getFullYear() + 1, dateObj.month - 1, dateObj.day);
+  return daysBetween(today, nextYear);
+}
+
+// The year the next occurrence falls in, so we can work out an age.
+function nextOccurrenceYear(dateObj, now) {
+  var today = startOfDay(now);
+  var thisYear = new Date(today.getFullYear(), dateObj.month - 1, dateObj.day);
+  return thisYear >= today ? today.getFullYear() : today.getFullYear() + 1;
+}
+
+// Build the list of things to flag, soonest first.
+function todayItems(contacts, now) {
+  now = now || new Date();
+  var items = [];
+
+  contacts.forEach(function (contact) {
+    // Birthdays get an age when we know the year.
+    if (contact.birthday) {
+      var days = daysUntilNext(contact.birthday, now);
+      if (days <= 7) {
+        var label = contact.name + "'s birthday";
+        if (contact.birthday.year) {
+          var age = nextOccurrenceYear(contact.birthday, now) - contact.birthday.year;
+          if (age > 0) label += " (turns " + age + ")";
+        }
+        items.push({ contactId: contact.id, label: label, days: days });
+      }
+    }
+    // Any other important date the user added.
+    contact.importantDates.forEach(function (d) {
+      var days = daysUntilNext(d, now);
+      if (days <= 7) {
+        var what = d.label ? d.label : "Important date";
+        items.push({ contactId: contact.id, label: contact.name + " - " + what, days: days });
+      }
+    });
+  });
+
+  items.sort(function (a, b) { return a.days - b.days || a.label.localeCompare(b.label); });
+  return items;
+}
+
+// "Today" / "Tomorrow" / "In 4 days"
+function inDaysText(days) {
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return "In " + days + " days";
+}
+
+
+/* ------------------------------------------------------------------
+   5b. SEARCH
+   One box. Case-insensitive. Looks at the name and every piece of
+   text on a contact, including notes and interaction summaries.
+   ------------------------------------------------------------------ */
+
+// Everything about a contact that is worth searching, as label/value pairs.
+function searchableFields(contact) {
+  var fields = [
+    ["Name", contact.name],
+    ["Nickname", contact.nickname],
+    ["Relationship", contact.relationship],
+    ["Phone", contact.phone],
+    ["Email", contact.email],
+    ["Address", contact.address],
+    ["Birthday", formatMonthDay(contact.birthday)],
+    ["How we met", contact.howWeMet],
+    ["Family", contact.family],
+    ["Work", contact.work],
+    ["Interests", contact.interests],
+    ["Gift ideas", contact.giftIdeas]
+  ];
+  contact.importantDates.forEach(function (d) {
+    fields.push([d.label || "Important date", formatMonthDay(d)]);
+  });
+  contact.notes.forEach(function (n) {
+    fields.push(["Note", n.text]);
+  });
+  contact.interactions.forEach(function (i) {
+    if (i.summary) fields.push([i.type, i.summary]);
+  });
+  return fields.filter(function (pair) { return pair[1]; });
+}
+
+// Find contacts matching the query, each with a snippet showing the match.
+function searchContacts(contacts, query) {
+  var needle = query.trim().toLowerCase();
+  if (!needle) return [];
+  var results = [];
+
+  contacts.forEach(function (contact) {
+    var fields = searchableFields(contact);
+    var nameHit = null;
+    var otherHit = null;
+
+    for (var i = 0; i < fields.length; i++) {
+      var label = fields[i][0];
+      var value = fields[i][1];
+      var index = value.toLowerCase().indexOf(needle);
+      if (index === -1) continue;
+      if (label === "Name") {
+        if (!nameHit) nameHit = { label: label, value: value, index: index };
+      } else {
+        // Prefer a match from somewhere other than the name, since the
+        // name is already shown right above the snippet.
+        otherHit = { label: label, value: value, index: index };
+        break;
+      }
+    }
+
+    var hit = otherHit || nameHit;
+    if (hit) results.push({ contact: contact, hit: hit });
+  });
+
+  results.sort(function (a, b) { return a.contact.name.localeCompare(b.contact.name); });
+  return results;
+}
+
+// Build a short piece of text around the match, with the match wrapped
+// in <mark>. Everything is escaped first so stray < or & can't break the page.
+function snippetHtml(hit, queryLength) {
+  var value = hit.value;
+  var start = Math.max(0, hit.index - 30);
+  var end = Math.min(value.length, hit.index + queryLength + 40);
+  var before = value.slice(start, hit.index);
+  var match = value.slice(hit.index, hit.index + queryLength);
+  var after = value.slice(hit.index + queryLength, end);
+  return escapeHtml(hit.label) + ": "
+    + (start > 0 ? "..." : "")
+    + escapeHtml(before)
+    + "<mark>" + escapeHtml(match) + "</mark>"
+    + escapeHtml(after)
+    + (end < value.length ? "..." : "");
+}
+
+
+/* ------------------------------------------------------------------
+   6. SCREENS
+
+   The app keeps one small "state" object saying what to show, then
+   redraws the whole screen. Simple and easy to follow.
+   ------------------------------------------------------------------ */
+
+var state = {
+  view: "home",            // "home" | "contact" | "edit" | "settings"
+  contactId: null,         // which contact we're looking at or editing
+  query: "",               // what's in the search box
+  newInteractionId: null,  // an interaction just tapped, waiting for a summary
+  editingNoteId: null,     // a note currently open for editing
+  editingTimeId: null      // an interaction whose timestamp is open for editing
+};
+
+var app = document.getElementById("app");
+
+// Find a contact by id, or null.
+function getContact(id) {
+  var data = loadData();
+  for (var i = 0; i < data.contacts.length; i++) {
+    if (data.contacts[i].id === id) return data.contacts[i];
+  }
+  return null;
+}
+
+// Change screens and scroll back to the top.
+function go(view, contactId) {
+  state.view = view;
+  state.contactId = contactId || null;
+  state.newInteractionId = null;
+  state.editingNoteId = null;
+  state.editingTimeId = null;
+  render();
+  window.scrollTo(0, 0);
+}
+
+// Draw whatever the state says we should be looking at.
+function render() {
+  if (state.view === "contact") renderContact();
+  else if (state.view === "edit") renderEdit();
+  else if (state.view === "settings") renderSettings();
+  else renderHome();
+  autoGrowAll();
+}
+
+// The header, reused on every screen.
+function topbar(rightHtml) {
+  return '<div class="topbar">'
+    + '<h1 class="wordmark">Camma.</h1>'
+    + '<div class="spacer"></div>'
+    + (rightHtml || "")
+    + '</div>';
+}
+
+// A back arrow that returns to Home.
+function backBar(rightHtml) {
+  return '<div class="topbar">'
+    + '<button class="link" data-action="home">&larr; Home</button>'
+    + '<div class="spacer"></div>'
+    + (rightHtml || "")
+    + '</div>';
+}
+
+
+/* ---------------- HOME ---------------- */
+
+function renderHome() {
+  var data = loadData();
+  var items = todayItems(data.contacts, new Date());
+
+  var html = topbar(
+      '<button class="small plain" data-action="settings">Settings</button>'
+    + '<button class="small" data-action="new-contact">+ Add</button>'
+  );
+
+  // --- Today panel
+  html += '<div class="panel-title">Today</div>';
+  html += '<div class="today">';
+  if (items.length === 0) {
+    html += '<div class="empty">Nothing flagged today.</div>';
+  } else {
+    items.forEach(function (item) {
+      html += '<button class="today-item" data-action="open-contact" data-id="' + escapeHtml(item.contactId) + '">'
+        + '<div>' + escapeHtml(item.label) + '</div>'
+        + '<div class="today-when">' + inDaysText(item.days) + '</div>'
+        + '</button>';
+    });
+  }
+  html += '</div>';
+
+  // --- Search box
+  html += '<div class="search">'
+    + '<input id="search" type="search" placeholder="Search everything" '
+    + 'autocomplete="off" value="' + escapeHtml(state.query) + '">'
+    + '</div>';
+
+  // --- The list itself lives in its own box so typing in search can
+  //     redraw only the list and keep the keyboard open.
+  html += '<div id="list"></div>';
+
+  app.innerHTML = html;
+  renderList();
+
+  // Typing filters as you go; clearing the box brings the ranked list back.
+  var searchBox = document.getElementById("search");
+  searchBox.addEventListener("input", function () {
+    state.query = searchBox.value;
+    renderList();
+  });
+}
+
+// Either the search results or the ranked list, depending on the search box.
+function renderList() {
+  var box = document.getElementById("list");
+  if (!box) return;
+  var data = loadData();
+
+  if (state.query.trim()) {
+    var results = searchContacts(data.contacts, state.query);
+    var queryLength = state.query.trim().length;
+    if (results.length === 0) {
+      box.innerHTML = '<div class="panel-title">Results</div><div class="empty">No matches.</div>';
+      return;
+    }
+    var html = '<div class="panel-title">' + results.length + ' result' + (results.length === 1 ? '' : 's') + '</div>';
+    results.forEach(function (r) {
+      html += '<button class="row" data-action="open-contact" data-id="' + escapeHtml(r.contact.id) + '">'
+        + '<span class="avatar">' + escapeHtml(initials(r.contact.name)) + '</span>'
+        + '<span class="row-text">'
+        + '<span class="row-name">' + escapeHtml(r.contact.name) + '</span>'
+        + '<span class="snippet">' + snippetHtml(r.hit, queryLength) + '</span>'
+        + '</span></button>';
+    });
+    box.innerHTML = html;
+    return;
+  }
+
+  // No search: show the ranked list.
+  if (data.contacts.length === 0) {
+    box.innerHTML = '<div class="panel-title">Contacts</div>'
+      + '<div class="empty">No contacts yet. Tap <strong>+ Add</strong> to start, '
+      + 'or open Settings and load the sample data to try things out.</div>';
+    return;
+  }
+
+  var ranked = rankContacts(data.contacts, new Date());
+  var out = '<div class="panel-title">Contacts</div>';
+  ranked.forEach(function (contact, index) {
+    var last = lastInteractionAt(contact);
+    var sub = last ? "Last contact: " + daysAgoText(last) : "No contact yet";
+    out += '<button class="row" data-action="open-contact" data-id="' + escapeHtml(contact.id) + '">'
+      + '<span class="rank">' + (index + 1) + '</span>'
+      + '<span class="avatar">' + escapeHtml(initials(contact.name)) + '</span>'
+      + '<span class="row-text">'
+      + '<span class="row-name">' + escapeHtml(contact.name) + '</span>'
+      + '<span class="row-sub">' + escapeHtml(sub) + '</span>'
+      + '</span></button>';
+  });
+  box.innerHTML = out;
+}
+
+
+/* ---------------- CONTACT DETAIL ---------------- */
+
+// One line of contact info, only drawn when there's something to show.
+function infoLine(label, value) {
+  if (!value) return "";
+  return '<div class="info-line"><span class="info-label">' + escapeHtml(label) + '</span>'
+    + '<span class="info-value">' + escapeHtml(value) + '</span></div>';
+}
+
+// Same, but the value is a tappable phone number or email address.
+function infoLink(label, value, href) {
+  if (!value) return "";
+  return '<div class="info-line"><span class="info-label">' + escapeHtml(label) + '</span>'
+    + '<a class="info-value" href="' + escapeHtml(href) + '">' + escapeHtml(value) + '</a></div>';
+}
+
+function renderContact() {
+  var c = getContact(state.contactId);
+  if (!c) { go("home"); return; }
+
+  var last = lastInteractionAt(c);
+  var html = backBar('<button class="small plain" data-action="edit-contact" data-id="' + escapeHtml(c.id) + '">Edit</button>');
+
+  // --- Name block
+  html += '<div style="display:flex;gap:14px;align-items:center;margin:18px 0 6px 0;">'
+    + '<span class="avatar big">' + escapeHtml(initials(c.name)) + '</span>'
+    + '<span><span style="font-size:24px;font-weight:700;display:block;">' + escapeHtml(c.name) + '</span>'
+    + (c.nickname ? '<span class="meta">' + escapeHtml(c.nickname) + '</span>' : '')
+    + '</span></div>';
+  if (c.relationship) html += '<span class="chip">' + escapeHtml(c.relationship) + '</span>';
+  if (c.floorRank) html += '<span class="chip">Floor rank ' + c.floorRank + '</span>';
+  html += '<div class="meta" style="margin-top:8px;">'
+    + (last ? "Last contact: " + escapeHtml(daysAgoText(last)) : "No contact yet")
+    + '</div>';
+
+  // --- Log an interaction: one tap saves it with the time right now.
+  html += '<div class="card"><h2>Log an interaction</h2>'
+    + '<div class="type-buttons">';
+  INTERACTION_TYPES.forEach(function (type) {
+    html += '<button data-action="log" data-id="' + escapeHtml(c.id) + '" data-type="' + escapeHtml(type) + '">'
+      + escapeHtml(type) + '</button>';
+  });
+  html += '</div>';
+
+  // After tapping, an optional one-line summary appears for that entry.
+  if (state.newInteractionId) {
+    html += '<label for="new-summary">Add a short summary (optional)</label>'
+      + '<textarea id="new-summary" placeholder="What did you talk about?"></textarea>'
+      + '<div class="stack" style="margin-top:10px;">'
+      + '<button class="wide" data-action="save-summary" data-id="' + escapeHtml(state.newInteractionId) + '">Save summary</button>'
+      + '<button class="wide plain" data-action="skip-summary">Skip</button>'
+      + '</div>';
+  }
+  html += '</div>';
+
+  // --- Interaction log, newest first.
+  html += '<div class="panel-title">Interaction log</div>';
+  if (c.interactions.length === 0) {
+    html += '<div class="empty">Nothing logged yet.</div>';
+  } else {
+    var sorted = c.interactions.slice().sort(function (a, b) { return a.at < b.at ? 1 : -1; });
+    sorted.forEach(function (entry) {
+      html += '<div class="entry">';
+      if (state.editingTimeId === entry.id) {
+        // Timestamps can be corrected after the fact.
+        html += '<label for="time-' + escapeHtml(entry.id) + '">When did this happen?</label>'
+          + '<input id="time-' + escapeHtml(entry.id) + '" type="datetime-local" value="'
+          + escapeHtml(toLocalInputValue(entry.at)) + '">'
+          + '<div class="entry-actions">'
+          + '<button class="small" data-action="save-time" data-id="' + escapeHtml(entry.id) + '">Save time</button>'
+          + '<button class="small plain" data-action="cancel-time">Cancel</button>'
+          + '</div>';
+      } else {
+        html += '<div><strong>' + escapeHtml(entry.type) + '</strong> '
+          + '<span class="meta">' + escapeHtml(formatDateTime(entry.at)) + '</span></div>';
+        if (entry.summary) html += '<p>' + escapeHtml(entry.summary) + '</p>';
+        html += '<div class="entry-actions">'
+          + '<button class="link" data-action="edit-time" data-id="' + escapeHtml(entry.id) + '">Edit time</button>'
+          + '<button class="link danger" data-action="delete-interaction" data-id="' + escapeHtml(entry.id) + '">Delete</button>'
+          + '</div>';
+      }
+      html += '</div>';
+    });
+  }
+
+  // --- Notes: separate entries, newest first, each stamped with its time.
+  html += '<div class="panel-title">Notes</div>';
+  html += '<textarea id="new-note" placeholder="Write a note..."></textarea>'
+    + '<button class="wide" style="margin-top:10px;" data-action="add-note" data-id="' + escapeHtml(c.id) + '">Add note</button>';
+
+  if (c.notes.length > 0) {
+    var notes = c.notes.slice().sort(function (a, b) { return a.createdAt < b.createdAt ? 1 : -1; });
+    notes.forEach(function (note) {
+      html += '<div class="entry">';
+      html += '<div class="meta">' + escapeHtml(formatDateTime(note.createdAt))
+        + (note.updatedAt ? ' &middot; edited' : '') + '</div>';
+      if (state.editingNoteId === note.id) {
+        html += '<textarea id="edit-note-' + escapeHtml(note.id) + '">' + escapeHtml(note.text) + '</textarea>'
+          + '<div class="entry-actions">'
+          + '<button class="small" data-action="save-note" data-id="' + escapeHtml(note.id) + '">Save</button>'
+          + '<button class="small plain" data-action="cancel-note">Cancel</button>'
+          + '</div>';
+      } else {
+        html += '<p>' + escapeHtml(note.text) + '</p>'
+          + '<div class="entry-actions">'
+          + '<button class="link" data-action="edit-note" data-id="' + escapeHtml(note.id) + '">Edit</button>'
+          + '<button class="link danger" data-action="delete-note" data-id="' + escapeHtml(note.id) + '">Delete</button>'
+          + '</div>';
+      }
+      html += '</div>';
+    });
+  }
+
+  // --- Everything else we know about them.
+  var info = infoLink("Phone", c.phone, "tel:" + c.phone)
+    + infoLink("Email", c.email, "mailto:" + c.email)
+    + infoLine("Address", c.address)
+    + infoLine("Birthday", formatMonthDay(c.birthday))
+    + c.importantDates.map(function (d) {
+        return infoLine(d.label || "Important date", formatMonthDay(d));
+      }).join("")
+    + infoLine("How we met", c.howWeMet)
+    + infoLine("Family, kids, pets", c.family)
+    + infoLine("Work", c.work)
+    + infoLine("Interests", c.interests)
+    + infoLine("Gift ideas", c.giftIdeas);
+
+  html += '<div class="panel-title">Details</div>';
+  html += info ? '<div class="card">' + info + '</div>' : '<div class="empty">Nothing filled in yet.</div>';
+
+  html += '<button class="wide plain danger" style="margin-top:24px;" '
+    + 'data-action="delete-contact" data-id="' + escapeHtml(c.id) + '">Delete contact</button>';
+
+  app.innerHTML = html;
+}
+
+
+/* ---------------- ADD / EDIT CONTACT ---------------- */
+
+// While the form is open we keep the half-typed contact here, so that
+// adding another date row doesn't wipe out what you've already typed.
+var editDraft = null;
+
+// A month dropdown, a day box and an optional year box.
+function dateFields(idPrefix, dateObj) {
+  var month = dateObj ? dateObj.month : "";
+  var day = dateObj ? dateObj.day : "";
+  var year = (dateObj && dateObj.year) ? dateObj.year : "";
+  var options = '<option value="">Month</option>';
+  MONTH_NAMES.forEach(function (name, i) {
+    options += '<option value="' + (i + 1) + '"' + (Number(month) === i + 1 ? ' selected' : '') + '>'
+      + name + '</option>';
+  });
+  return '<div class="date-row three">'
+    + '<select id="' + idPrefix + '-month">' + options + '</select>'
+    + '<input id="' + idPrefix + '-day" type="number" inputmode="numeric" min="1" max="31" placeholder="Day" value="' + escapeHtml(day) + '">'
+    + '<input id="' + idPrefix + '-year" type="number" inputmode="numeric" placeholder="Year" value="' + escapeHtml(year) + '">'
+    + '</div>';
+}
+
+// One text input with a label above it.
+function textField(id, label, value, placeholder) {
+  return '<label for="' + id + '">' + escapeHtml(label) + '</label>'
+    + '<input id="' + id + '" type="text" value="' + escapeHtml(value || "") + '"'
+    + (placeholder ? ' placeholder="' + escapeHtml(placeholder) + '"' : '') + '>';
+}
+
+// One growing text area with a label above it.
+function areaField(id, label, value, placeholder) {
+  return '<label for="' + id + '">' + escapeHtml(label) + '</label>'
+    + '<textarea id="' + id + '"'
+    + (placeholder ? ' placeholder="' + escapeHtml(placeholder) + '"' : '') + '>'
+    + escapeHtml(value || "") + '</textarea>';
+}
+
+function renderEdit() {
+  var isNew = !state.contactId;
+  if (!editDraft) {
+    editDraft = isNew ? emptyContact() : JSON.parse(JSON.stringify(getContact(state.contactId)));
+    if (!editDraft) { go("home"); return; }
+  }
+  var c = editDraft;
+
+  var html = backBar();
+  html += '<h2 style="margin:12px 0;">' + (isNew ? "Add contact" : "Edit contact") + '</h2>';
+
+  html += textField("f-name", "Name (required)", c.name);
+  html += textField("f-nickname", "Nickname", c.nickname);
+  html += textField("f-relationship", "Relationship", c.relationship, "Friend, cousin, colleague...");
+  html += '<label for="f-phone">Phone</label><input id="f-phone" type="tel" value="' + escapeHtml(c.phone) + '">';
+  html += '<label for="f-email">Email</label><input id="f-email" type="email" autocapitalize="off" value="' + escapeHtml(c.email) + '">';
+  html += areaField("f-address", "Address", c.address);
+
+  html += '<label>Birthday (year optional)</label>' + dateFields("f-bday", c.birthday);
+
+  // Other important dates: as many as you like.
+  html += '<label>Other important dates</label>';
+  c.importantDates.forEach(function (d, i) {
+    html += '<div class="repeat-block">'
+      + '<input id="f-date-' + i + '-label" type="text" placeholder="What is it? (anniversary, etc.)" value="' + escapeHtml(d.label || "") + '">'
+      + '<div style="margin-top:8px;">' + dateFields("f-date-" + i, d) + '</div>'
+      + '<button class="link danger" data-action="remove-date" data-index="' + i + '">Remove this date</button>'
+      + '</div>';
+  });
+  html += '<button class="plain small" style="margin-top:10px;" data-action="add-date">+ Add another date</button>';
+
+  html += areaField("f-howWeMet", "How we met", c.howWeMet);
+  html += areaField("f-family", "Family, kids, pets", c.family);
+  html += areaField("f-work", "Work", c.work);
+  html += areaField("f-interests", "Interests", c.interests);
+  html += areaField("f-giftIdeas", "Gift ideas", c.giftIdeas);
+
+  html += '<label for="f-floor">Floor rank (optional)</label>'
+    + '<input id="f-floor" type="number" inputmode="numeric" min="1" value="'
+    + escapeHtml(c.floorRank === null ? "" : c.floorRank) + '">'
+    + '<div class="hint">A floor is a promise: this person never ranks lower than this '
+    + 'number on Home. They can still rank higher. Leave it blank for most people.</div>';
+
+  html += '<div class="stack" style="margin-top:24px;">'
+    + '<button class="wide" data-action="save-contact">Save</button>'
+    + '<button class="wide plain" data-action="cancel-edit">Cancel</button>'
+    + '</div>';
+
+  app.innerHTML = html;
+}
+
+// Copy whatever is currently typed in the form into editDraft.
+function readEditForm() {
+  function val(id) {
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : "";
+  }
+  var c = editDraft;
+  c.name = val("f-name");
+  c.nickname = val("f-nickname");
+  c.relationship = val("f-relationship");
+  c.phone = val("f-phone");
+  c.email = val("f-email");
+  c.address = val("f-address");
+  c.howWeMet = val("f-howWeMet");
+  c.family = val("f-family");
+  c.work = val("f-work");
+  c.interests = val("f-interests");
+  c.giftIdeas = val("f-giftIdeas");
+  c.floorRank = val("f-floor") === "" ? null : Math.round(Number(val("f-floor")));
+  if (c.floorRank !== null && (!isFinite(c.floorRank) || c.floorRank < 1)) c.floorRank = null;
+
+  c.birthday = normalizeDate({ month: val("f-bday-month"), day: val("f-bday-day"), year: val("f-bday-year") });
+
+  c.importantDates = c.importantDates.map(function (_, i) {
+    var d = normalizeDate({
+      month: val("f-date-" + i + "-month"),
+      day: val("f-date-" + i + "-day"),
+      year: val("f-date-" + i + "-year")
+    });
+    // Keep the row even when the date is blank, so a half-typed row isn't lost.
+    if (!d) d = { month: "", day: "", year: null };
+    d.label = val("f-date-" + i + "-label");
+    return d;
+  });
+}
+
+
+/* ---------------- SETTINGS ---------------- */
+
+function renderSettings() {
+  var data = loadData();
+
+  var backupText = "Last backup: never";
+  if (data.lastBackupAt) {
+    backupText = "Last backup: " + daysAgoText(data.lastBackupAt);
+  }
+
+  var html = backBar();
+  html += '<h2 style="margin:12px 0;">Settings</h2>';
+
+  html += '<div class="card"><h2>Backup</h2>'
+    + '<div class="meta">' + escapeHtml(backupText) + '</div>'
+    + '<div class="stack" style="margin-top:12px;">'
+    + '<button class="wide" data-action="export">Export (download JSON)</button>'
+    + '<button class="wide plain" data-action="import">Import (upload JSON)</button>'
+    + '</div>'
+    + '<div class="hint">Export saves a file with everything in it. Import replaces '
+    + 'what is on this device with the contents of that file.</div>'
+    + '<input id="import-file" type="file" accept="application/json,.json" class="hidden">'
+    + '</div>';
+
+  html += '<div class="card"><h2>Your data</h2>'
+    + '<div class="meta">' + data.contacts.length + ' contact' + (data.contacts.length === 1 ? '' : 's')
+    + ' stored in this browser.</div>'
+    + '<div class="stack" style="margin-top:12px;">'
+    + '<button class="wide plain" data-action="sample">Load sample data</button>'
+    + '<button class="wide plain danger" data-action="clear">Delete everything</button>'
+    + '</div>'
+    + '<div class="hint">Sample data adds 20 made-up contacts so you can see how '
+    + 'ranking behaves. It replaces what is here now.</div>'
+    + '</div>';
+
+  html += '<div class="card"><h2>How ranking works</h2>'
+    + '<div class="meta">Each interaction is worth '
+    + escapeHtml(TYPE_WEIGHTS["In person"]) + ' (in person), '
+    + escapeHtml(TYPE_WEIGHTS["Call"]) + ' (call) or '
+    + escapeHtml(TYPE_WEIGHTS["Text"]) + ' (text and other) on the day it happens, '
+    + 'and halves every ' + HALF_LIFE_DAYS + ' days. Floor ranks then pull people up '
+    + 'if they have slipped below their floor. Positions ' + (TOP_SLOTS + 1) + ' and below are '
+    + 'sorted only by who you spoke to most recently, so a floor rank above '
+    + TOP_SLOTS + ' has no effect.</div></div>';
+
+  html += '<div class="hint" style="margin-top:20px;">Camma stores everything in this '
+    + 'browser only. Nothing is uploaded anywhere. Export regularly.</div>';
+
+  app.innerHTML = html;
+
+  // Wire the hidden file picker used by Import.
+  var fileInput = document.getElementById("import-file");
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files && fileInput.files[0]) importFile(fileInput.files[0]);
+  });
+}
+
+
+/* ------------------------------------------------------------------
+   7. WIRING: what happens when you tap things
+   ------------------------------------------------------------------ */
+
+// Load, change one contact, save again. Keeps every write in one place.
+function updateContact(id, changeFn) {
+  var data = loadData();
+  for (var i = 0; i < data.contacts.length; i++) {
+    if (data.contacts[i].id === id) {
+      changeFn(data.contacts[i]);
+      saveData(data);
+      return;
+    }
+  }
+}
+
+// Find the contact that owns an interaction or note id.
+function contactOwning(listName, entryId) {
+  var data = loadData();
+  for (var i = 0; i < data.contacts.length; i++) {
+    var list = data.contacts[i][listName];
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].id === entryId) return data.contacts[i];
+    }
+  }
+  return null;
+}
+
+// One click handler for the whole app. Every button carries a
+// data-action telling us what it wants to do.
+app.addEventListener("click", function (event) {
+  var button = event.target.closest("[data-action]");
+  if (!button) return;
+  var action = button.getAttribute("data-action");
+  var id = button.getAttribute("data-id");
+
+  /* --- moving between screens --- */
+  if (action === "home") { editDraft = null; state.query = ""; go("home"); return; }
+  if (action === "settings") { go("settings"); return; }
+  if (action === "open-contact") { go("contact", id); return; }
+  if (action === "new-contact") { editDraft = null; go("edit", null); return; }
+  if (action === "edit-contact") { editDraft = null; go("edit", id); return; }
+  if (action === "cancel-edit") {
+    var wasEditing = state.contactId;
+    editDraft = null;
+    if (wasEditing) go("contact", wasEditing); else go("home");
+    return;
+  }
+
+  /* --- interaction log --- */
+  if (action === "log") {
+    // One tap saves it, stamped with right now.
+    var entry = { id: newId(), type: button.getAttribute("data-type"), at: new Date().toISOString(), summary: "" };
+    updateContact(id, function (c) { c.interactions.push(entry); });
+    state.newInteractionId = entry.id;   // makes the optional summary box appear
+    render();
+    var box = document.getElementById("new-summary");
+    if (box) box.focus();
+    return;
+  }
+  if (action === "save-summary") {
+    var text = (document.getElementById("new-summary") || {}).value || "";
+    var owner = contactOwning("interactions", id);
+    if (owner) {
+      updateContact(owner.id, function (c) {
+        c.interactions.forEach(function (i) { if (i.id === id) i.summary = text.trim(); });
+      });
+    }
+    state.newInteractionId = null;
+    render();
+    return;
+  }
+  if (action === "skip-summary") { state.newInteractionId = null; render(); return; }
+
+  if (action === "edit-time") { state.editingTimeId = id; render(); return; }
+  if (action === "cancel-time") { state.editingTimeId = null; render(); return; }
+  if (action === "save-time") {
+    var input = document.getElementById("time-" + id);
+    var when = input ? new Date(input.value) : null;
+    if (!when || isNaN(when.getTime())) { alert("That date and time didn't look right."); return; }
+    var ownerT = contactOwning("interactions", id);
+    if (ownerT) {
+      updateContact(ownerT.id, function (c) {
+        c.interactions.forEach(function (i) { if (i.id === id) i.at = when.toISOString(); });
+      });
+    }
+    state.editingTimeId = null;
+    render();
+    return;
+  }
+  if (action === "delete-interaction") {
+    if (!confirm("Delete this interaction?")) return;
+    var ownerD = contactOwning("interactions", id);
+    if (ownerD) {
+      updateContact(ownerD.id, function (c) {
+        c.interactions = c.interactions.filter(function (i) { return i.id !== id; });
+      });
+    }
+    render();
+    return;
+  }
+
+  /* --- notes --- */
+  if (action === "add-note") {
+    var noteBox = document.getElementById("new-note");
+    var noteText = noteBox ? noteBox.value.trim() : "";
+    if (!noteText) { alert("Write something first."); return; }
+    updateContact(id, function (c) {
+      c.notes.push({ id: newId(), text: noteText, createdAt: new Date().toISOString(), updatedAt: null });
+    });
+    render();
+    return;
+  }
+  if (action === "edit-note") { state.editingNoteId = id; render(); return; }
+  if (action === "cancel-note") { state.editingNoteId = null; render(); return; }
+  if (action === "save-note") {
+    var area = document.getElementById("edit-note-" + id);
+    var newText = area ? area.value.trim() : "";
+    if (!newText) { alert("A note can't be empty. Delete it instead."); return; }
+    var ownerN = contactOwning("notes", id);
+    if (ownerN) {
+      updateContact(ownerN.id, function (c) {
+        c.notes.forEach(function (n) {
+          if (n.id === id && n.text !== newText) {
+            n.text = newText;
+            n.updatedAt = new Date().toISOString();   // original time stays, we just mark it edited
+          }
+        });
+      });
+    }
+    state.editingNoteId = null;
+    render();
+    return;
+  }
+  if (action === "delete-note") {
+    if (!confirm("Delete this note?")) return;
+    var ownerND = contactOwning("notes", id);
+    if (ownerND) {
+      updateContact(ownerND.id, function (c) {
+        c.notes = c.notes.filter(function (n) { return n.id !== id; });
+      });
+    }
+    render();
+    return;
+  }
+
+  /* --- the add/edit form --- */
+  if (action === "add-date") {
+    readEditForm();                                   // keep what's typed
+    editDraft.importantDates.push({ month: "", day: "", year: null, label: "" });
+    renderEdit();
+    autoGrowAll();
+    return;
+  }
+  if (action === "remove-date") {
+    readEditForm();
+    editDraft.importantDates.splice(Number(button.getAttribute("data-index")), 1);
+    renderEdit();
+    autoGrowAll();
+    return;
+  }
+  if (action === "save-contact") {
+    readEditForm();
+    if (!editDraft.name) { alert("A name is required."); return; }
+    // Drop any date rows that were left blank.
+    editDraft.importantDates = editDraft.importantDates.filter(function (d) {
+      return normalizeDate(d) !== null;
+    });
+    var data = loadData();
+    var existing = data.contacts.findIndex(function (c) { return c.id === editDraft.id; });
+    if (existing === -1) data.contacts.push(normalizeContact(editDraft));
+    else data.contacts[existing] = normalizeContact(editDraft);
+    saveData(data);
+    var savedId = editDraft.id;
+    editDraft = null;
+    go("contact", savedId);
+    return;
+  }
+  if (action === "delete-contact") {
+    if (!confirm("Delete this contact and everything in it? This cannot be undone.")) return;
+    var d2 = loadData();
+    d2.contacts = d2.contacts.filter(function (c) { return c.id !== id; });
+    saveData(d2);
+    go("home");
+    return;
+  }
+
+  /* --- settings --- */
+  if (action === "export") { exportData(); return; }
+  if (action === "import") { document.getElementById("import-file").click(); return; }
+  if (action === "sample") {
+    if (!confirm("Replace everything on this device with 20 sample contacts?")) return;
+    saveData(makeSampleData());
+    go("home");
+    return;
+  }
+  if (action === "clear") {
+    if (!confirm("Delete every contact, note and interaction? This cannot be undone.")) return;
+    if (!confirm("Really delete everything? Export first if you want a copy.")) return;
+    saveData(emptyData());
+    go("home");
+    return;
+  }
+});
+
+// Text areas grow as you type, anywhere in the app.
+app.addEventListener("input", function (event) {
+  if (event.target.tagName === "TEXTAREA") autoGrow(event.target);
+});
+
+
+/* ---------------- EXPORT AND IMPORT ---------------- */
+
+// Save everything to a JSON file the phone can keep (Files, Drive, email).
+function exportData() {
+  var data = loadData();
+  data.lastBackupAt = new Date().toISOString();
+  saveData(data);
+
+  var text = JSON.stringify(data, null, 2);
+  var blob = new Blob([text], { type: "application/json" });
+  var url = URL.createObjectURL(blob);
+  var stamp = new Date().toISOString().slice(0, 10);   // YYYY-MM-DD
+
+  var link = document.createElement("a");
+  link.href = url;
+  link.download = "camma-backup-" + stamp + ".json";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+
+  render();   // refresh the "Last backup" line
+}
+
+// Read a backup file and put it back. Replaces what's here.
+function importFile(file) {
+  var reader = new FileReader();
+  reader.onload = function () {
+    var incoming;
+    try {
+      incoming = JSON.parse(reader.result);
+    } catch (err) {
+      alert("That file isn't valid JSON.");
+      return;
+    }
+    if (!incoming || !Array.isArray(incoming.contacts)) {
+      alert("That doesn't look like a Camma backup.");
+      return;
+    }
+    if (!confirm("Replace everything on this device with "
+        + incoming.contacts.length + " contacts from this file?")) return;
+    saveData(normalizeData(incoming));
+    alert("Imported " + incoming.contacts.length + " contacts.");
+    go("home");
+  };
+  reader.onerror = function () { alert("Could not read that file."); };
+  reader.readAsText(file);
+}
+
+
+/* ------------------------------------------------------------------
+   8. SAMPLE DATA
+   20 made-up people with varied history and a few floor ranks, so you
+   can check that ranking behaves the way you expect.
+   ------------------------------------------------------------------ */
+
+// Turn "this many days from today" into a month/day/year object,
+// so the sample birthdays always land near today whenever you load it.
+function dateFromOffset(daysFromToday, birthYear) {
+  var d = new Date();
+  d.setDate(d.getDate() + daysFromToday);
+  return { month: d.getMonth() + 1, day: d.getDate(), year: birthYear || null };
+}
+
+// An ISO timestamp this many days ago, at a plausible hour.
+function whenDaysAgo(days, hour) {
+  var d = new Date();
+  d.setDate(d.getDate() - days);
+  d.setHours(hour || 19, (days * 7) % 60, 0, 0);
+  return d.toISOString();
+}
+
+function makeSampleData() {
+  // Each row: name, relationship, work, interests, floor rank,
+  // and a list of [interaction type, how many days ago].
+  var people = [
+    { name: "Helen Ward", nickname: "Mum", relationship: "Mother", floor: 1,
+      work: "Retired teacher", interests: "Gardening, crosswords, Radio 4",
+      family: "Married to Dad. Two grandchildren.", howWeMet: "She was there first.",
+      giftIdeas: "Good secateurs, seed catalogue subscription",
+      bdayOffset: 0, bdayYear: 1958,
+      ix: [["Call", 9], ["Text", 12], ["In person", 34]] },
+
+    { name: "Robert Ward", nickname: "Dad", relationship: "Father", floor: 2,
+      work: "Retired, does woodwork", interests: "Cricket, carpentry, terrible puns",
+      family: "Married to Mum.", giftIdeas: "Chisels, cricket almanack",
+      bdayMonth: 3, bdayDay: 14, bdayYear: 1956,
+      ix: [["Text", 20], ["Call", 41]] },
+
+    { name: "Priya Raman", relationship: "Best friend", floor: 4,
+      work: "Paediatric nurse, St Mary's", interests: "Climbing, Tamil cinema, baking",
+      howWeMet: "Halls of residence, first year. She lent me a kettle.",
+      giftIdeas: "Climbing chalk, good vanilla",
+      bdayOffset: 3, bdayYear: 1992,
+      ix: [["Text", 16], ["Call", 25], ["In person", 52]] },
+
+    { name: "Tom Okafor", relationship: "Best friend", floor: 4,
+      work: "Structural engineer", interests: "Five-a-side, vinyl, cooking",
+      howWeMet: "Worked together at the first job.",
+      bdayMonth: 7, bdayDay: 2, bdayYear: 1991,
+      ix: [["Text", 22], ["Other", 30]] },
+
+    { name: "Iris Ward", nickname: "Grandma", relationship: "Grandmother", floor: 8,
+      work: "Retired seamstress", interests: "Quilting, birds, old films",
+      family: "Widowed. Lives in Kendal.", giftIdeas: "Warm socks, photo prints",
+      bdayMonth: 11, bdayDay: 30, bdayYear: 1932,
+      ix: [["Call", 28], ["In person", 95]] },
+
+    { name: "Sam Delgado", relationship: "Housemate",
+      work: "Freelance illustrator", interests: "Comics, bouldering, cold brew",
+      howWeMet: "Answered my room advert.",
+      ix: [["In person", 0], ["In person", 1], ["Text", 2], ["In person", 4], ["Text", 6]] },
+
+    { name: "Aisha Bello", relationship: "Colleague",
+      work: "Product manager, same team", interests: "Running, podcasts, sourdough",
+      howWeMet: "First week at the current job.",
+      ix: [["In person", 1], ["Call", 3], ["Text", 5], ["In person", 9]] },
+
+    { name: "Marcus Lin", relationship: "Friend",
+      work: "Data analyst", interests: "Board games, sci-fi, cycling",
+      howWeMet: "Board game night at the pub.",
+      bdayOffset: 6, bdayYear: 1990,
+      ix: [["In person", 2], ["Text", 7], ["Text", 13]] },
+
+    { name: "Nina Petrov", relationship: "Friend",
+      work: "Architect", interests: "Swimming, ceramics, jazz",
+      ix: [["Call", 4], ["Text", 8], ["In person", 21]] },
+
+    { name: "Chris Hale", relationship: "Old friend",
+      work: "Teacher", interests: "Hiking, photography",
+      howWeMet: "Sixth form.",
+      ix: [["Text", 11], ["Call", 33]] },
+
+    { name: "Dana Whitfield", relationship: "Mentor",
+      work: "Engineering director", interests: "Sailing, whisky, biographies",
+      giftIdeas: "Good notebook",
+      ix: [["Call", 6], ["In person", 45]] },
+
+    { name: "Ben Asante", relationship: "Cousin",
+      work: "Physiotherapist", interests: "Football, cooking, travel",
+      family: "Two kids, Kofi and Ama.",
+      ix: [["Text", 14], ["In person", 60]] },
+
+    { name: "Yuki Tanaka", relationship: "Friend",
+      work: "Translator", interests: "Tea, kendo, novels",
+      howWeMet: "Language exchange meetup.",
+      ix: [["Text", 18], ["Other", 40]] },
+
+    { name: "Omar Haddad", relationship: "Neighbour",
+      work: "Runs the corner shop", interests: "Chess, gardening",
+      ix: [["In person", 5], ["In person", 19]] },
+
+    { name: "Ellie Brooks", relationship: "Friend",
+      work: "Vet nurse", interests: "Dogs, festivals, knitting",
+      ix: [["Text", 26], ["Call", 38]] },
+
+    { name: "Jonas Meyer", relationship: "Former colleague",
+      work: "Backend developer, moved to Berlin", interests: "Techno, climbing",
+      ix: [["Other", 48], ["Text", 70]] },
+
+    { name: "Rachel Kim", relationship: "Friend",
+      work: "Solicitor", interests: "Tennis, wine, true crime",
+      ix: [["Call", 55]] },
+
+    { name: "Victor Sousa", relationship: "Acquaintance",
+      work: "Chef", interests: "Surfing, knives, fermenting",
+      ix: [["In person", 80]] },
+
+    { name: "Lena Novak", relationship: "Friend of a friend",
+      work: "PhD student", interests: "Birdwatching, poetry",
+      ix: [] },
+
+    { name: "Theo Marsh", relationship: "Met at a wedding",
+      work: "Sound engineer", interests: "Guitars, road trips",
+      ix: [] }
+  ];
+
+  var data = emptyData();
+
+  people.forEach(function (row) {
+    var c = emptyContact();
+    c.name = row.name;
+    c.nickname = row.nickname || "";
+    c.relationship = row.relationship || "";
+    c.work = row.work || "";
+    c.interests = row.interests || "";
+    c.family = row.family || "";
+    c.howWeMet = row.howWeMet || "";
+    c.giftIdeas = row.giftIdeas || "";
+    c.floorRank = row.floor || null;
+
+    // Birthdays: either "a few days from today" or a fixed month/day.
+    if (row.bdayOffset !== undefined) {
+      c.birthday = dateFromOffset(row.bdayOffset, row.bdayYear);
+    } else if (row.bdayMonth) {
+      c.birthday = { month: row.bdayMonth, day: row.bdayDay, year: row.bdayYear || null };
+    }
+
+    // Give a couple of people an extra important date landing this week.
+    if (row.name === "Tom Okafor") {
+      var soon = dateFromOffset(2, null);
+      soon.label = "Anniversary";
+      c.importantDates.push(soon);
+    }
+    if (row.name === "Aisha Bello") {
+      var work = dateFromOffset(0, 2019);
+      work.label = "Work anniversary";
+      c.importantDates.push(work);
+    }
+
+    // Interactions, with a summary on some of them.
+    row.ix.forEach(function (pair, index) {
+      c.interactions.push({
+        id: newId(),
+        type: pair[0],
+        at: whenDaysAgo(pair[1], 10 + (index * 3) % 10),
+        summary: index === 0 ? "Caught up about " + (row.interests || "things").split(",")[0].toLowerCase().trim() + "." : ""
+      });
+    });
+
+    // A note or two on the closest people.
+    if (row.floor) {
+      c.notes.push({
+        id: newId(),
+        text: "Remember: " + (row.giftIdeas || "ask about how the week went") + ".",
+        createdAt: whenDaysAgo(10, 20),
+        updatedAt: null
+      });
+    }
+
+    data.contacts.push(c);
+  });
+
+  return data;
+}
+
+
+/* ------------------------------------------------------------------
+   9. START
+   ------------------------------------------------------------------ */
+
+render();
+
+// Coming back to the app (switching tabs, unlocking the phone) redraws
+// Home so the Today panel is always recalculated.
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden && state.view === "home") render();
+});
+</script>
+</body>
+</html>
