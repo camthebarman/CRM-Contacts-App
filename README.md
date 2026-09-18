@@ -55,3 +55,26 @@ Export on the old phone, import on the new one — that's how you move devices.
 Settings → **Load sample data** creates 20 made-up contacts with varied history
 and a few floor ranks, so you can watch the ranking behave. It replaces whatever
 is currently stored, so export first if you have real data.
+
+## Putting it online
+
+`.github/workflows/deploy-pages.yml` publishes Camma to GitHub Pages. Once this
+is merged into `main`, the workflow runs, switches Pages on by itself, and your
+app is live at:
+
+```
+https://camthebarman.github.io/CRM-Contacts-App/
+```
+
+Open that in Safari, then Share → **Add to Home Screen**.
+
+Every later push to `main` redeploys within a minute. You can also run it by
+hand from the repo's **Actions** tab.
+
+If the run fails saying Pages is disabled, the repo needs Actions allowed to
+enable it: repo → Settings → Actions → General → Workflow permissions →
+**Read and write permissions**. Then re-run the workflow.
+
+> Your saved contacts live in the browser, tied to the exact web address you
+> use. Data saved at the Pages URL won't show up if you open the file any other
+> way. Pick that URL, add it to your home screen, and stick with it.
